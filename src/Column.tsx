@@ -8,6 +8,7 @@ type ColumnProps = {
 };
 
 export function Column({ column, tasks }: ColumnProps) {
+  console.log(column,tasks);
   const { setNodeRef } = useDroppable({
     id: column.id,
   });

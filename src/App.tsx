@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Task, Column as ColumnType } from './types';
 import { Column } from './Column';
 import { DndContext, DragEndEvent } from '@dnd-kit/core';
+import KanbanBoard from './kabnabNew';
 
 const COLUMNS: ColumnType[] = [
   { id: 'TODO', title: 'To Do' },
@@ -61,7 +62,7 @@ export default function App() {
 
   return (
     <div className="p-4">
-      <div className="flex gap-8">
+      {/* <div className="flex gap-8">
         <DndContext onDragEnd={handleDragEnd}>
           {COLUMNS.map((column) => {
             return (
@@ -73,7 +74,8 @@ export default function App() {
             );
           })}
         </DndContext>
-      </div>
+      </div> */}
+      <KanbanBoard />
     </div>
   );
 }
