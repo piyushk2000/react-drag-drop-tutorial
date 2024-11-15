@@ -3,8 +3,15 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 const SortableItem = ({ id, children }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  
+  const {
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    attributes,
+    listeners,
+  } = useSortable({ id });
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -12,8 +19,8 @@ const SortableItem = ({ id, children }) => {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
+    <div ref={setNodeRef} style={style}>
+      {React.cloneElement(children, { attributes, listeners })}
     </div>
   );
 };
