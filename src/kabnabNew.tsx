@@ -239,11 +239,114 @@ const KanbanBoard = () => {
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
     >
-      <div style={{ display: 'flex', gap: '16px', padding: '16px', background: '#1E1E1E', color: '#f0f0f0' }}>
-        {Object.values(columns).map(column => (
-          <DroppableContainer key={column.id} id={column.id}>
+      <div 
+        style={{ 
+          padding: '16px', 
+          background: '#1E1E1E', 
+          color: '#f0f0f0',
+          display: 'flex', // Existing
+          flexDirection: 'row', // Existing
+          gap: '16px', // Existing
+        }}
+      >
+        {/* Column 1 (To Do) */}
+        <DroppableContainer id="todo">
+          <div
+            style={{
+              width: '100%',
+              flex: 1,
+              border: '1px solid #555',
+              background: '#2C2C2C',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '8px',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>To Do</h3>
+            <SortableContext
+              items={columns.todo.items.map(item => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div style={{ minHeight: '50px' }}>
+                {columns.todo.items.length > 0 ? (
+                  columns.todo.items.map(item => (
+                    isEditing === item.id ? (
+                      <div key={item.id} style={{ marginBottom: '4px' }}>
+                        <input
+                          type="text"
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          style={{
+                            width: '80%',
+                            padding: '6px',
+                            borderRadius: '4px',
+                            border: '1px solid #555',
+                            background: '#3C3C3C',
+                            color: '#f0f0f0',
+                          }}
+                        />
+                        <button
+                          onClick={() => saveEdit(item.id)}
+                          style={{
+                            padding: '6px',
+                            marginLeft: '4px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            background: '#555555',
+                            color: '#f0f0f0',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    ) : (
+                      <SortableItem key={item.id} id={item.id}>
+                        <Draggable id={item.id} onEdit={editCard} onDelete={deleteCard}>
+                          {item.content}
+                        </Draggable>
+                      </SortableItem>
+                    )
+                  ))
+                ) : (
+                  <div style={{ padding: '8px', color: '#888' }}>
+                    No items
+                  </div>
+                )}
+              </div>
+            </SortableContext>
+            <button
+              onClick={() => addCard('todo')}
+              style={{
+                margin: '8px',
+                background: '#555555',
+                color: '#f0f0f0',
+                border: 'none',
+                padding: '8px',
+                cursor: 'pointer',
+                borderRadius: '4px',
+              }}
+            >
+              Add Card
+            </button>
+          </div>
+        </DroppableContainer>
+
+        {/* Column 2 (In Progress and Review) */}
+        <div 
+          style={{ 
+            display: 'flex', 
+            flexDirection: 'column', // Stack vertically
+            flex: 1, 
+            gap: '16px', // Spacing between In Progress and Review
+          }}
+        >
+          <DroppableContainer id="inprogress">
             <div
               style={{
+                width: '100%',
                 flex: 1,
                 border: '1px solid #555',
                 background: '#2C2C2C',
@@ -254,14 +357,14 @@ const KanbanBoard = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
               }}
             >
-              <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>{column.title}</h3>
+              <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>In Progress</h3>
               <SortableContext
-                items={column.items.map(item => item.id)}
+                items={columns.inprogress.items.map(item => item.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div style={{ minHeight: '50px' }}>
-                  {column.items.length > 0 ? (
-                    column.items.map(item => (
+                  {columns.inprogress.items.length > 0 ? (
+                    columns.inprogress.items.map(item => (
                       isEditing === item.id ? (
                         <div key={item.id} style={{ marginBottom: '4px' }}>
                           <input
@@ -308,7 +411,7 @@ const KanbanBoard = () => {
                 </div>
               </SortableContext>
               <button
-                onClick={() => addCard(column.id)}
+                onClick={() => addCard('inprogress')}
                 style={{
                   margin: '8px',
                   background: '#555555',
@@ -323,7 +426,176 @@ const KanbanBoard = () => {
               </button>
             </div>
           </DroppableContainer>
-        ))}
+
+          <DroppableContainer id="review">
+            <div
+              style={{
+                width: '100%',
+                flex: 1,
+                border: '1px solid #555',
+                background: '#2C2C2C',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '8px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              }}
+            >
+              <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>Review</h3>
+              <SortableContext
+                items={columns.review.items.map(item => item.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div style={{ minHeight: '50px' }}>
+                  {columns.review.items.length > 0 ? (
+                    columns.review.items.map(item => (
+                      isEditing === item.id ? (
+                        <div key={item.id} style={{ marginBottom: '4px' }}>
+                          <input
+                            type="text"
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            style={{
+                              width: '80%',
+                              padding: '6px',
+                              borderRadius: '4px',
+                              border: '1px solid #555',
+                              background: '#3C3C3C',
+                              color: '#f0f0f0',
+                            }}
+                          />
+                          <button
+                            onClick={() => saveEdit(item.id)}
+                            style={{
+                              padding: '6px',
+                              marginLeft: '4px',
+                              borderRadius: '4px',
+                              border: 'none',
+                              background: '#555555',
+                              color: '#f0f0f0',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      ) : (
+                        <SortableItem key={item.id} id={item.id}>
+                          <Draggable id={item.id} onEdit={editCard} onDelete={deleteCard}>
+                            {item.content}
+                          </Draggable>
+                        </SortableItem>
+                      )
+                    ))
+                  ) : (
+                    <div style={{ padding: '8px', color: '#888' }}>
+                      No items
+                    </div>
+                  )}
+                </div>
+              </SortableContext>
+              <button
+                onClick={() => addCard('review')}
+                style={{
+                  margin: '8px',
+                  background: '#555555',
+                  color: '#f0f0f0',
+                  border: 'none',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                }}
+              >
+                Add Card
+              </button>
+            </div>
+          </DroppableContainer>
+        </div>
+
+        {/* Column 3 (Done) */}
+        <DroppableContainer id="done">
+          <div
+            style={{
+              width: '100%',
+              flex: 1,
+              border: '1px solid #555',
+              background: '#2C2C2C',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '8px',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            }}
+          >
+            <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>Done</h3>
+            <SortableContext
+              items={columns.done.items.map(item => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div style={{ minHeight: '50px' }}>
+                {columns.done.items.length > 0 ? (
+                  columns.done.items.map(item => (
+                    isEditing === item.id ? (
+                      <div key={item.id} style={{ marginBottom: '4px' }}>
+                        <input
+                          type="text"
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          style={{
+                            width: '80%',
+                            padding: '6px',
+                            borderRadius: '4px',
+                            border: '1px solid #555',
+                            background: '#3C3C3C',
+                            color: '#f0f0f0',
+                          }}
+                        />
+                        <button
+                          onClick={() => saveEdit(item.id)}
+                          style={{
+                            padding: '6px',
+                            marginLeft: '4px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            background: '#555555',
+                            color: '#f0f0f0',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    ) : (
+                      <SortableItem key={item.id} id={item.id}>
+                        <Draggable id={item.id} onEdit={editCard} onDelete={deleteCard}>
+                          {item.content}
+                        </Draggable>
+                      </SortableItem>
+                    )
+                  ))
+                ) : (
+                  <div style={{ padding: '8px', color: '#888' }}>
+                    No items
+                  </div>
+                )}
+              </div>
+            </SortableContext>
+            <button
+              onClick={() => addCard('done')}
+              style={{
+                margin: '8px',
+                background: '#555555',
+                color: '#f0f0f0',
+                border: 'none',
+                padding: '8px',
+                cursor: 'pointer',
+                borderRadius: '4px',
+              }}
+            >
+              Add Card
+            </button>
+          </div>
+        </DroppableContainer>
       </div>
       <DragOverlay>
         {activeItem ? (
