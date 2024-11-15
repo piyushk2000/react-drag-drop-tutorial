@@ -6,7 +6,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  rectSortingStrategy,
   useDroppable,
 } from '@dnd-kit/core';
 import {
@@ -17,17 +16,50 @@ import {
 import SortableItem from './SortableItem';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
+import { v4 as uuidv4 } from 'uuid';
 
-const initialData = {
+// Define TypeScript interfaces
+interface Item {
+  id: string;
+  content: string;
+  subItems?: Item[];
+}
+
+interface Column {
+  id: string;
+  title: string;
+  items: Item[];
+}
+
+interface Columns {
+  [key: string]: Column;
+}
+
+interface DraggableProps {
+  id: string;
+  attributes?: any;
+  listeners?: any;
+  children?: React.ReactNode;
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
+}
+
+interface DroppableContainerProps {
+  id: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}
+
+const initialData: { columns: Columns } = {
   columns: {
-    todo: { id: 'todo', title: 'To Do', items: [{ id: '1', content: 'Task 1' }] },
-    inprogress: { id: 'inprogress', title: 'In Progress', items: [{ id: '2', content: 'Task 2' }] },
-    review: { id: 'review', title: 'Review', items: [] },
-    done: { id: 'done', title: 'Done', items: [] },
+    vendor: { id: 'vendor', title: 'Vendor', items: [{ id: '1', content: 'Task 1' }] },
+    support: { id: 'support', title: 'Support', items: [{ id: '2', content: 'Task 2' }] },
+    core: { id: 'core', title: 'Core', items: [] },
+    client: { id: 'client', title: 'Client', items: [] },
   },
 };
 
-const Draggable = ({ id, attributes, listeners, children, onEdit, onDelete }) => {
+const Draggable: React.FC<DraggableProps> = ({ id, attributes, listeners, children, onEdit, onDelete }) => {
   const [height, setHeight] = useState(100);
 
   const handleResize = (event, { size }) => {
@@ -74,7 +106,7 @@ const Draggable = ({ id, attributes, listeners, children, onEdit, onDelete }) =>
   );
 };
 
-const DroppableContainer = ({ id, children }) => {
+const DroppableContainer: React.FC<DroppableContainerProps> = ({ id, children, style }) => {
   const { isOver, setNodeRef } = useDroppable({ id });
 
   return (
@@ -86,6 +118,7 @@ const DroppableContainer = ({ id, children }) => {
         padding: '8px',
         color: '#f0f0f0',
         flexGrow: 1,
+        ...style, // Allow additional styles
       }}
     >
       {children}
@@ -93,12 +126,12 @@ const DroppableContainer = ({ id, children }) => {
   );
 };
 
-const KanbanBoard = () => {
-  const [columns, setColumns] = useState(initialData.columns);
-  const [activeId, setActiveId] = useState(null);
-  const [activeItem, setActiveItem] = useState(null);
-  const [isEditing, setIsEditing] = useState(null);
-  const [editContent, setEditContent] = useState('');
+const KanbanBoard: React.FC = () => {
+  const [columns, setColumns] = useState<Columns>(initialData.columns);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeItem, setActiveItem] = useState<Item | null>(null);
+  const [isEditing, setIsEditing] = useState<string | null>(null); // Ensure only one edit at a time
+  const [editContent, setEditContent] = useState<string>('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -108,14 +141,14 @@ const KanbanBoard = () => {
     })
   );
 
-  const findContainer = (id) => {
+  const findContainer = (id: string) => {
     if (id in columns) return id;
     return Object.keys(columns).find(key =>
       columns[key].items.some(item => item.id === id)
     );
   };
 
-  const findItemById = (id) => {
+  const findItemById = (id: string) => {
     for (const column of Object.values(columns)) {
       const item = column.items.find(item => item.id === id);
       if (item) return item;
@@ -161,27 +194,36 @@ const KanbanBoard = () => {
         },
       };
     });
+    console.log(`Dragging over column: ${over?.id}`);
   };
 
   const onDragEnd = (event) => {
     const { active, over } = event;
+    console.log(`Drag ended for item: ${active.id} over: ${over?.id}`);
     setActiveId(null);
     setActiveItem(null);
-    if (!over) return;
+    if (!over) {
+      console.log('Item was dropped outside any container.');
+      return;
+    }
 
     const activeContainer = findContainer(active.id);
     const overContainer = over.id in columns ? over.id : findContainer(over.id);
 
-    if (!activeContainer || !overContainer) return;
+    if (!activeContainer || !overContainer) {
+      console.log('Could not determine containers.');
+      return;
+    }
 
     if (activeContainer !== overContainer) {
+      console.log(`Moved item ${active.id} from ${activeContainer} to ${overContainer}`);
       return;
     }
 
     const activeIndex = columns[activeContainer].items.findIndex(item => item.id === active.id);
     const overIndex = columns[overContainer].items.findIndex(item => item.id === over.id);
 
-    if (activeIndex !== overIndex) {
+    if (activeIndex !== overIndex && overIndex !== -1) {
       setColumns(prevColumns => ({
         ...prevColumns,
         [activeContainer]: {
@@ -189,12 +231,15 @@ const KanbanBoard = () => {
           items: arrayMove(prevColumns[activeContainer].items, activeIndex, overIndex),
         },
       }));
+      console.log(`Changed order of item ${active.id} within ${activeContainer} from index ${activeIndex} to ${overIndex}`);
+    } else {
+      console.log('Item dropped in the same position.');
     }
   };
 
-  const addCard = (columnId) => {
-    const newId = Date.now().toString();
-    const newItem = { id: newId, content: `Task ${newId}`, subItems: [] };
+  const addCard = (columnId: string) => {
+    const newId = uuidv4(); // Use UUID for unique IDs
+    const newItem: Item = { id: newId, content: `Task ${newId}`, subItems: [] };
     setColumns({
       ...columns,
       [columnId]: {
@@ -205,7 +250,7 @@ const KanbanBoard = () => {
     console.log('Added', newItem, 'to', columnId);
   };
 
-  const deleteCard = (cardId) => {
+  const deleteCard = (cardId: string) => {
     const updatedColumns = { ...columns };
     Object.values(updatedColumns).forEach(column => {
       column.items = column.items.filter(item => item.id !== cardId);
@@ -213,7 +258,7 @@ const KanbanBoard = () => {
     setColumns(updatedColumns);
   };
 
-  const editCard = (cardId) => {
+  const editCard = (cardId: string) => {
     const item = Object.values(columns).flatMap(col => col.items).find(i => i.id === cardId);
     if (item) {
       setIsEditing(cardId);
@@ -221,8 +266,12 @@ const KanbanBoard = () => {
     }
   };
 
-  const saveEdit = (cardId) => {
-    const updatedColumns = { ...columns };
+  const saveEdit = (cardId: string) => {
+    if (editContent.trim() === '') {
+      alert('Content cannot be empty.');
+      return;
+    }
+    const updatedColumns: Columns = { ...columns };
     Object.values(updatedColumns).forEach(column => {
       column.items = column.items.map(item => item.id === cardId ? { ...item, content: editContent } : item);
     });
@@ -244,13 +293,12 @@ const KanbanBoard = () => {
           padding: '16px', 
           background: '#1E1E1E', 
           color: '#f0f0f0',
-          display: 'flex', // Existing
-          flexDirection: 'row', // Existing
-          gap: '16px', // Existing
+          display: 'flex',
+          flexDirection: 'row',
+          gap: '16px',
         }}
       >
-        {/* Column 1 (To Do) */}
-        <DroppableContainer id="todo">
+        <DroppableContainer id="vendor" style={{ flex: 1 }}>
           <div
             style={{
               width: '100%',
@@ -264,14 +312,14 @@ const KanbanBoard = () => {
               boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
             }}
           >
-            <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>To Do</h3>
+            <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>Vendor</h3>
             <SortableContext
-              items={columns.todo.items.map(item => item.id)}
+              items={columns.vendor.items.map(item => item.id)}
               strategy={verticalListSortingStrategy}
             >
               <div style={{ minHeight: '50px' }}>
-                {columns.todo.items.length > 0 ? (
-                  columns.todo.items.map(item => (
+                {columns.vendor.items.length > 0 ? (
+                  columns.vendor.items.map(item => (
                     isEditing === item.id ? (
                       <div key={item.id} style={{ marginBottom: '4px' }}>
                         <input
@@ -318,7 +366,7 @@ const KanbanBoard = () => {
               </div>
             </SortableContext>
             <button
-              onClick={() => addCard('todo')}
+              onClick={() => addCard('vendor')}
               style={{
                 margin: '8px',
                 background: '#555555',
@@ -334,16 +382,15 @@ const KanbanBoard = () => {
           </div>
         </DroppableContainer>
 
-        {/* Column 2 (In Progress and Review) */}
         <div 
           style={{ 
             display: 'flex', 
-            flexDirection: 'column', // Stack vertically
-            flex: 1, 
-            gap: '16px', // Spacing between In Progress and Review
+            flexDirection: 'column',
+            flex: 2, // Set middle column to 50%
+            gap: '16px',
           }}
         >
-          <DroppableContainer id="inprogress">
+          <DroppableContainer id="support">
             <div
               style={{
                 width: '100%',
@@ -357,14 +404,14 @@ const KanbanBoard = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
               }}
             >
-              <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>In Progress</h3>
+              <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>Support</h3>
               <SortableContext
-                items={columns.inprogress.items.map(item => item.id)}
+                items={columns.support.items.map(item => item.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div style={{ minHeight: '50px' }}>
-                  {columns.inprogress.items.length > 0 ? (
-                    columns.inprogress.items.map(item => (
+                  {columns.support.items.length > 0 ? (
+                    columns.support.items.map(item => (
                       isEditing === item.id ? (
                         <div key={item.id} style={{ marginBottom: '4px' }}>
                           <input
@@ -411,7 +458,7 @@ const KanbanBoard = () => {
                 </div>
               </SortableContext>
               <button
-                onClick={() => addCard('inprogress')}
+                onClick={() => addCard('support')}
                 style={{
                   margin: '8px',
                   background: '#555555',
@@ -427,7 +474,7 @@ const KanbanBoard = () => {
             </div>
           </DroppableContainer>
 
-          <DroppableContainer id="review">
+          <DroppableContainer id="core">
             <div
               style={{
                 width: '100%',
@@ -441,14 +488,14 @@ const KanbanBoard = () => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
               }}
             >
-              <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>Review</h3>
+              <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>Core</h3>
               <SortableContext
-                items={columns.review.items.map(item => item.id)}
+                items={columns.core.items.map(item => item.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div style={{ minHeight: '50px' }}>
-                  {columns.review.items.length > 0 ? (
-                    columns.review.items.map(item => (
+                  {columns.core.items.length > 0 ? (
+                    columns.core.items.map(item => (
                       isEditing === item.id ? (
                         <div key={item.id} style={{ marginBottom: '4px' }}>
                           <input
@@ -495,7 +542,7 @@ const KanbanBoard = () => {
                 </div>
               </SortableContext>
               <button
-                onClick={() => addCard('review')}
+                onClick={() => addCard('core')}
                 style={{
                   margin: '8px',
                   background: '#555555',
@@ -512,8 +559,7 @@ const KanbanBoard = () => {
           </DroppableContainer>
         </div>
 
-        {/* Column 3 (Done) */}
-        <DroppableContainer id="done">
+        <DroppableContainer id="client" style={{ flex: 1 }}>
           <div
             style={{
               width: '100%',
@@ -527,14 +573,14 @@ const KanbanBoard = () => {
               boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
             }}
           >
-            <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>Done</h3>
+            <h3 style={{ textAlign: 'center', color: '#f0f0f0' }}>Client</h3>
             <SortableContext
-              items={columns.done.items.map(item => item.id)}
+              items={columns.client.items.map(item => item.id)}
               strategy={verticalListSortingStrategy}
             >
               <div style={{ minHeight: '50px' }}>
-                {columns.done.items.length > 0 ? (
-                  columns.done.items.map(item => (
+                {columns.client.items.length > 0 ? (
+                  columns.client.items.map(item => (
                     isEditing === item.id ? (
                       <div key={item.id} style={{ marginBottom: '4px' }}>
                         <input
@@ -581,7 +627,7 @@ const KanbanBoard = () => {
               </div>
             </SortableContext>
             <button
-              onClick={() => addCard('done')}
+              onClick={() => addCard('client')}
               style={{
                 margin: '8px',
                 background: '#555555',
