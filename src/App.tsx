@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Task, Column as ColumnType } from './types';
 import { Column } from './Column';
 import { DndContext, DragEndEvent } from '@dnd-kit/core';
-import KanbanBoard from './kanban-dnd-resiable/kabnabNew';
+import KanbanBoard from './kanban-dnd-resiable';
 
 const COLUMNS: ColumnType[] = [
   { id: 'TODO', title: 'To Do' },
