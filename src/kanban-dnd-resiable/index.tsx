@@ -22,7 +22,6 @@ import { v4 as uuidv4 } from 'uuid';
 interface Item {
   id: string;
   content: string;
-  subItems?: Item[];
 }
 
 interface Column {
@@ -262,7 +261,7 @@ const KanbanBoard: React.FC = () => {
 
   const addCard = (columnId: string) => {
     const newId = uuidv4(); // Use UUID for unique IDs
-    const newItem: Item = { id: newId, content: `Task ${newId}`, subItems: [] };
+    const newItem: Item = { id: newId, content: `Task ${newId}` };
     setColumns({
       ...columns,
       [columnId]: {
